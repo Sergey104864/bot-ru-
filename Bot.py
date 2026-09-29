@@ -253,25 +253,43 @@ if __name__ == "__main__":
 # ==========================================
 # === ВЕБ-СЕРВЕР ДЛЯ RENDER ===
 # ==========================================
+import threading
 from aiohttp import web
 
-async def handle(request):
-    return web.Response(text="Bot is alive!")
 
-async def web_server():
-    app = web.Application()
-    app.router.add_get('/', handle)
-    runner = web.AppRunner(app)
-    await runner.setup()
-    site = web.TCPSite(runner, '0.0.0.0', int(os.environ.get('PORT', 8080)))
-    await site.start()
+# ==========================================
+# === ВЕБ-СЕРВЕР ДЛЯ RENDER (в отдельном потоке) ===
+# ==========================================
+
+def run_web_server():
+    """Веб-сервер в отдельном потоке"""
+
+    async def handle(request):
+        return web.Response(text="Bot is alive!")
+
+    async def web_server():
+        app = web.Application()
+        app.router.add_get('/', handle)
+        runner = web.AppRunner(app)
+        await runner.setup()
+        port = int(os.environ.get('PORT', 8080))
+        site = web.TCPSite(runner, '0.0.0.0', port)
+        await site.start()
+        print(f"✅ Веб-сервер запущен на порту {port}")
+        # Бесконечное ожидание, чтобы поток не завершался
+        await asyncio.Event().wait()
+
+    asyncio.run(web_server())
+
 
 async def main():
-    # Запускаем веб-сервер и бота параллельно
-    asyncio.create_task(web_server())
     print("🤖 Бот запущен!")
     print("📚 База знаний готова к работе.")
     await dp.start_polling(bot)
 
+
 if __name__ == "__main__":
+    # Запускаем веб-сервер в отдельном потоке
+    threading.Thread(target=run_web_server, daemon=True).start()
+    # Запускаем бота в главном потоке
     asyncio.run(main())
