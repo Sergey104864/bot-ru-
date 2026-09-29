@@ -213,7 +213,7 @@ async def handle_message(message: types.Message):
 
         # --- ОТПРАВКА ЗАПРОСА В OPENROUTER ---
         response = client.chat.completions.create(
-            model="inclusionai/ling-3.0-flash-fin:free",
+            model="liquid/lfm-2.5-2.6b:free",
             messages=messages,
             timeout=30.0,
             extra_headers={
