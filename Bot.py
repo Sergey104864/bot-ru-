@@ -213,7 +213,7 @@ async def handle_message(message: types.Message):
 
         # --- ОТПРАВКА ЗАПРОСА В OPENROUTER ---
         response = client.chat.completions.create(
-            model="deepseek/deepseek-v4-flash:free",
+            model="deepseek/deepseek-chat-v3.1:free",
             messages=messages,
             timeout=30.0,
             extra_headers={
