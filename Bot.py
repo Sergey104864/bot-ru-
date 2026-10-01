@@ -15,14 +15,16 @@ from dotenv import load_dotenv
 load_dotenv()
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
-OPENROUTER_KEY = os.getenv("OPENROUTER_KEY")
+#OPENROUTER_KEY = os.getenv("OPENROUTER_KEY")
 
 # ============================================
 # 2. НАСТРОЙКА OPENROUTER
 # ============================================
+PROXYAPI_KEY = os.environ.get("PROXYAPI_KEY")
+
 client = openai.OpenAI(
-    api_key=OPENROUTER_KEY,
-    base_url="https://openrouter.ai/api/v1",
+    api_key=PROXYAPI_KEY,  # ✅ ПРАВИЛЬНО
+    base_url="https://api.proxyapi.ru/openai/v1",
 )
 
 # ============================================
@@ -213,7 +215,7 @@ async def handle_message(message: types.Message):
 
         # --- ОТПРАВКА ЗАПРОСА В OPENROUTER ---
         response = client.chat.completions.create(
-            model="liquid/lfm-2.5-2.6b:free",
+            model="deepseek/deepseek-v4.1-flash",
             messages=messages,
             timeout=30.0,
             extra_headers={
