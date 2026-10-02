@@ -13,6 +13,20 @@ from dotenv import load_dotenv
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 PROXYAPI_KEY = os.environ.get("PROXYAPI_KEY")
 
+# ===== ОТЛАДКА =====
+print("=" * 50)
+print(f"🔍 BOT_TOKEN: {'✅ ЕСТЬ' if BOT_TOKEN else '❌ ПУСТО'}")
+print(f"🔍 PROXYAPI_KEY: {'✅ ЕСТЬ' if PROXYAPI_KEY else '❌ ПУСТО'}")
+if PROXYAPI_KEY:
+    print(f"🔍 PROXYAPI_KEY начинается с: {PROXYAPI_KEY[:10]}...")
+else:
+    print("🔍 Все переменные окружения:")
+    for key in os.environ:
+        if "PROXY" in key or "API" in key or "BOT" in key:
+            print(f"   - {key} = {os.environ[key][:10]}...")
+print("=" * 50)
+# ===================
+
 
 # --- НАСТРОЙКА OPENAI (через ProxyAPI) ---
 
