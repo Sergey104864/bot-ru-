@@ -6,21 +6,15 @@ from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import Command
 from dotenv import load_dotenv
 
-
-
-
 # ============================================
-# 1. НАСТРОЙКИ
+# 2. НАСТРОЙКА
 # ============================================
-load_dotenv()
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
-#OPENROUTER_KEY = os.getenv("OPENROUTER_KEY")
-
-# ============================================
-# 2. НАСТРОЙКА OPENROUTER
-# ============================================
 PROXYAPI_KEY = os.environ.get("PROXYAPI_KEY")
+
+
+# --- НАСТРОЙКА OPENAI (через ProxyAPI) ---
 
 client = openai.OpenAI(
     api_key=PROXYAPI_KEY,  # ✅ ПРАВИЛЬНО
@@ -238,16 +232,7 @@ async def handle_message(message: types.Message):
         await message.answer("⚠️ Ошибка при генерации ответа. Попробуйте позже.")
         print(f"🔴 ОШИБКА: {e}")
 
-# ============================================
-# 10. ЗАПУСК
-# ============================================
-async def main():
-    print("🤖 Бот запущен!")
-    print("📚 База знаний готова к работе.")
-    await dp.start_polling(bot)
 
-if __name__ == "__main__":
-    asyncio.run(main())
 
 
 
