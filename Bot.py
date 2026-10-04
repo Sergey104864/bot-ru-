@@ -24,27 +24,10 @@ print("=" * 60)
 # =========================
 
 # --- НАСТРОЙКА OPENAI (через ProxyAPI) ---
-API_KEY = (
-    os.environ.get("PROXYAPI_KEY")
-    or os.environ.get("OPENAI_API_KEY")
-    or os.environ.get("PROXY_API_KEY")
-)
-
-if not API_KEY:
-    print("❌ КРИТИЧЕСКАЯ ОШИБКА: ключ ProxyAPI не найден!")
-    raise SystemExit(1)
-
-print(f"✅ Ключ найден: {API_KEY[:10]}...")
-
+# OpenAI SDK сам читает OPENAI_API_KEY из переменных окружения
 client = openai.OpenAI(
-    api_key=API_KEY,
     base_url="https://api.proxyapi.ru/openai/v1",
 )
-
-# ============================================
-# 3. ПАМЯТЬ БОТА
-# ============================================
-user_history = {}
 
 # ============================================
 # 3. ПАМЯТЬ БОТА
