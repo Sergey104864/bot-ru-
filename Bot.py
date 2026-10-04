@@ -26,7 +26,7 @@ print("=" * 60)
 # --- НАСТРОЙКА OPENAI (через ProxyAPI) ---
 # OpenAI SDK сам читает OPENAI_API_KEY из переменных окружения
 client = openai.OpenAI(
-    base_url="https://api.proxyapi.ru/openai/v1",
+    base_url="https://api.proxyapi.ru/v1",
 )
 
 # ============================================
@@ -219,11 +219,7 @@ async def handle_message(message: types.Message):
         response = client.chat.completions.create(
             model="deepseek/deepseek-v4.1-flash",
             messages=messages,
-            timeout=30.0,
-            extra_headers={
-                "HTTP-Referer": "https://localhost",
-                "X-Title": "Service Bot"
-            }
+            timeout=30.0
         )
 
         # --- БЕЗОПАСНОЕ ПОЛУЧЕНИЕ ОТВЕТА ---
