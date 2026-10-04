@@ -4,7 +4,6 @@ import openai
 import os
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import Command
-from dotenv import load_dotenv
 
 # ============================================
 # 2. НАСТРОЙКА
@@ -24,16 +23,8 @@ print("=" * 60)
 # =========================
 
 # --- НАСТРОЙКА OPENAI (через ProxyAPI) ---
-# OpenAI SDK автоматически читает OPENAI_API_KEY из окружения
+# OpenAI SDK автоматически читает OPENAI_API_KEY из переменных окружения
 client = openai.OpenAI(
-    base_url="https://api.proxyapi.ru/openai/v1",
-)
-
-
-# --- НАСТРОЙКА OPENAI (через ProxyAPI) ---
-
-client = openai.OpenAI(
-    api_key=PROXYAPI_KEY,  # ✅ ПРАВИЛЬНО
     base_url="https://api.proxyapi.ru/openai/v1",
 )
 
