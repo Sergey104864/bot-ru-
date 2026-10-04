@@ -16,17 +16,35 @@ print("=" * 60)
 print("🔍 ВСЕ ПЕРЕМЕННЫЕ ОКРУЖЕНИЯ:")
 for key in sorted(os.environ.keys()):
     value = os.environ[key]
-    if len(value) > 20:
-        value = value[:10] + "..." + value[-5:]
+    if "TOKEN" in key or "KEY" in key or "API" in key:
+        if len(value) > 20:
+            value = value[:10] + "..." + value[-5:]
     print(f"   {key} = {value}")
 print("=" * 60)
 # =========================
 
 # --- НАСТРОЙКА OPENAI (через ProxyAPI) ---
-# OpenAI SDK автоматически читает OPENAI_API_KEY из переменных окружения
+API_KEY = (
+    os.environ.get("PROXYAPI_KEY")
+    or os.environ.get("OPENAI_API_KEY")
+    or os.environ.get("PROXY_API_KEY")
+)
+
+if not API_KEY:
+    print("❌ КРИТИЧЕСКАЯ ОШИБКА: ключ ProxyAPI не найден!")
+    raise SystemExit(1)
+
+print(f"✅ Ключ найден: {API_KEY[:10]}...")
+
 client = openai.OpenAI(
+    api_key=API_KEY,
     base_url="https://api.proxyapi.ru/openai/v1",
 )
+
+# ============================================
+# 3. ПАМЯТЬ БОТА
+# ============================================
+user_history = {}
 
 # ============================================
 # 3. ПАМЯТЬ БОТА
