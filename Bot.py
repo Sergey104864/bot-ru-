@@ -4,12 +4,14 @@ import openai
 import os
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import Command
+from database import init_db, save_message, get_user_history, get_all_users
 
 # ============================================
 # 2. НАСТРОЙКА
 # ============================================
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
+ADMIN_ID = 5089723992  # ← ВАШ ID от @userinfobot
 
 # ===== ДИАГНОСТИКА =====
 print("=" * 60)
