@@ -310,3 +310,48 @@ async def handle_message(message: types.Message):
     except Exception as e:
         await message.answer("Ошибка при генерации ответа. Попробуйте позже.")
         print(f"🔴 ОШИБКА: {e}")
+
+
+# ==========================================
+# === ВЕБ-СЕРВЕР ДЛЯ RENDER ===
+# ==========================================
+import threading
+from aiohttp import web
+
+
+def run_web_server():
+    """Веб-сервер в отдельном потоке"""
+
+    async def handle(request):
+        return web.Response(text="Bot is alive!")
+
+    async def web_server():
+        app = web.Application()
+        app.router.add_get('/', handle)
+        runner = web.AppRunner(app)
+        await runner.setup()
+        port = int(os.environ.get('PORT', 8080))
+        site = web.TCPSite(runner, '0.0.0.0', port)
+        await site.start()
+        print(f"✅ Веб-сервер запущен на порту {port}")
+        await asyncio.Event().wait()
+
+    asyncio.run(web_server())
+
+
+# ==========================================
+# === ЗАПУСК ===
+# ==========================================
+
+async def main():
+    # ИНИЦИАЛИЗАЦИЯ БАЗЫ ДАННЫХ
+    await init_db()
+
+    print("🤖 Бот запущен!")
+    print("📚 База знаний готова к работе.")
+    await dp.start_polling(bot)
+
+
+if __name__ == "__main__":
+    threading.Thread(target=run_web_server, daemon=True).start()
+    asyncio.run(main())
