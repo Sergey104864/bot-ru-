@@ -250,8 +250,16 @@ async def cmd_dialog(message: types.Message):
 async def handle_message(message: types.Message):
     user_id = message.from_user.id
     user_text = message.text
+    username = message.from_user.username or "нет"
+    first_name = message.from_user.first_name
 
     await bot.send_chat_action(chat_id=message.chat.id, action="typing")
+
+    # === СОХРАНЯЕМ СООБЩЕНИЕ ПОЛЬЗОВАТЕЛЯ В БД ===
+    try:
+        await save_message(user_id, username, first_name, "user", user_text)
+    except Exception as e:
+        print(f"⚠️ Ошибка сохранения в БД: {e}")
 
     try:
         # --- РАБОТА С ПАМЯТЬЮ ---
@@ -268,7 +276,6 @@ async def handle_message(message: types.Message):
             {"role": "system", "content": SYSTEM_PROMPT}
         ]
 
-        # Добавляем базу знаний (если она есть)
         if knowledge_base:
             messages.append({
                 "role": "system",
@@ -277,7 +284,7 @@ async def handle_message(message: types.Message):
 
         messages.extend(user_history[user_id])
 
-        # --- ОТПРАВКА ЗАПРОСА В OPENROUTER ---
+        # --- ОТПРАВКА ЗАПРОСА В PROXYAPI ---
         response = client.chat.completions.create(
             model="deepseek/deepseek-v4.1-flash",
             messages=messages,
@@ -288,61 +295,18 @@ async def handle_message(message: types.Message):
         if response.choices and response.choices[0].message.content:
             answer = response.choices[0].message.content
         else:
-            answer = "🤔 Я не смог найти ответ. Попробуйте переформулировать вопрос."
+            answer = "Не смог найти ответ. Попробуйте переформулировать вопрос."
 
         user_history[user_id].append({"role": "assistant", "content": answer})
+
+        # === СОХРАНЯЕМ ОТВЕТ БОТА В БД ===
+        try:
+            await save_message(user_id, username, first_name, "assistant", answer)
+        except Exception as e:
+            print(f"⚠️ Ошибка сохранения в БД: {e}")
 
         await message.answer(answer)
 
     except Exception as e:
-        await message.answer("⚠️ Ошибка при генерации ответа. Попробуйте позже.")
+        await message.answer("Ошибка при генерации ответа. Попробуйте позже.")
         print(f"🔴 ОШИБКА: {e}")
-
-
-
-
-
-
-# ==========================================
-# === ВЕБ-СЕРВЕР ДЛЯ RENDER ===
-# ==========================================
-import threading
-from aiohttp import web
-
-
-# ==========================================
-# === ВЕБ-СЕРВЕР ДЛЯ RENDER (в отдельном потоке) ===
-# ==========================================
-
-def run_web_server():
-    """Веб-сервер в отдельном потоке"""
-
-    async def handle(request):
-        return web.Response(text="Bot is alive!")
-
-    async def web_server():
-        app = web.Application()
-        app.router.add_get('/', handle)
-        runner = web.AppRunner(app)
-        await runner.setup()
-        port = int(os.environ.get('PORT', 8080))
-        site = web.TCPSite(runner, '0.0.0.0', port)
-        await site.start()
-        print(f"✅ Веб-сервер запущен на порту {port}")
-        # Бесконечное ожидание, чтобы поток не завершался
-        await asyncio.Event().wait()
-
-    asyncio.run(web_server())
-
-
-async def main():
-    print("🤖 Бот запущен!")
-    print("📚 База знаний готова к работе.")
-    await dp.start_polling(bot)
-
-
-if __name__ == "__main__":
-    # Запускаем веб-сервер в отдельном потоке
-    threading.Thread(target=run_web_server, daemon=True).start()
-    # Запускаем бота в главном потоке
-    asyncio.run(main())
