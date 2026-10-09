@@ -4,7 +4,7 @@ import openai
 import os
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import Command
-from database import init_db, save_message, get_user_history, get_all_users
+from database import init_db, save_message, get_user_history, get_all_users, is_user_exists
 
 # ============================================
 # 2. НАСТРОЙКА
@@ -243,6 +243,9 @@ async def cmd_dialog(message: types.Message):
 
     await message.answer(text[:4000])
 
+
+
+
 # ============================================
 # 9. ОСНОВНОЙ ОБРАБОТЧИК СООБЩЕНИЙ
 # ============================================
@@ -253,7 +256,30 @@ async def handle_message(message: types.Message):
     username = message.from_user.username or "нет"
     first_name = message.from_user.first_name
 
+    # === ПРОВЕРЯЕМ, НОВЫЙ ЛИ ПОЛЬЗОВАТЕЛЬ ===
+    is_new_user = False
+    try:
+        user_exists = await is_user_exists(user_id)
+        if not user_exists:
+            is_new_user = True
+    except Exception as e:
+        print(f"⚠️ Ошибка проверки пользователя: {e}")
+
     await bot.send_chat_action(chat_id=message.chat.id, action="typing")
+
+    # === УВЕДОМЛЕНИЕ АДМИНУ О НОВОМ ПОЛЬЗОВАТЕЛЕ ===
+    if is_new_user:
+        try:
+            await bot.send_message(
+                ADMIN_ID,
+                f"🔔 Новый пользователь!\n\n"
+                f"👤 Имя: {first_name}\n"
+                f"📱 Username: @{username}\n"
+                f"🆔 ID: {user_id}\n"
+                f"💬 Первое сообщение: {user_text}"
+            )
+        except Exception as e:
+            print(f"⚠️ Ошибка уведомления админа: {e}")
 
     # === СОХРАНЯЕМ СООБЩЕНИЕ ПОЛЬЗОВАТЕЛЯ В БД ===
     try:
@@ -355,3 +381,75 @@ async def main():
 if __name__ == "__main__":
     threading.Thread(target=run_web_server, daemon=True).start()
     asyncio.run(main())
+
+
+
+
+"""
+database.py — модуль для работы с базой данных бота.
+"""
+
+import aiosqlite
+from datetime import datetime
+
+
+DB_PATH = "bot_history.db"
+
+
+async def init_db():
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS messages (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER,
+                username TEXT,
+                first_name TEXT,
+                role TEXT,
+                content TEXT,
+                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        await db.commit()
+    print("✅ База данных готова")
+
+
+async def save_message(user_id: int, username: str, first_name: str, role: str, content: str):
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute(
+            "INSERT INTO messages (user_id, username, first_name, role, content) VALUES (?, ?, ?, ?, ?)",
+            (user_id, username, first_name, role, content)
+        )
+        await db.commit()
+
+
+async def get_user_history(user_id: int, limit: int = 20):
+    async with aiosqlite.connect(DB_PATH) as db:
+        cursor = await db.execute(
+            "SELECT role, content, timestamp FROM messages WHERE user_id = ? ORDER BY timestamp DESC LIMIT ?",
+            (user_id, limit)
+        )
+        rows = await cursor.fetchall()
+        return rows[::-1]
+
+
+async def get_all_users():
+    async with aiosqlite.connect(DB_PATH) as db:
+        cursor = await db.execute("""
+            SELECT DISTINCT user_id, username, first_name, MAX(timestamp) as last_seen 
+            FROM messages 
+            GROUP BY user_id 
+            ORDER BY last_seen DESC
+        """)
+        rows = await cursor.fetchall()
+        return rows
+
+
+async def is_user_exists(user_id: int) -> bool:
+    """Проверяет, есть ли пользователь в базе данных."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        cursor = await db.execute(
+            "SELECT 1 FROM messages WHERE user_id = ? LIMIT 1",
+            (user_id,)
+        )
+        row = await cursor.fetchone()
+        return row is not None
