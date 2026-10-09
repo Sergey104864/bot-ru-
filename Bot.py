@@ -193,6 +193,56 @@ async def clear_history(message: types.Message):
     else:
         await message.answer("📭 У вас нет сохранённой истории.")
 
+
+# ============================================
+# 8.5. АДМИН-КОМАНДЫ
+# ============================================
+
+@dp.message(Command("users"))
+async def cmd_users(message: types.Message):
+    if message.from_user.id != ADMIN_ID:
+        await message.answer("Эта команда только для администратора.")
+        return
+
+    users = await get_all_users()
+    if not users:
+        await message.answer("Пока нет пользователей.")
+        return
+
+    text = "👥 Пользователи:\n\n"
+    for user_id, username, first_name, last_seen in users:
+        text += f"• {first_name} (@{username or 'нет'})\n"
+        text += f"  ID: {user_id}\n"
+        text += f"  Последняя активность: {last_seen}\n\n"
+
+    await message.answer(text[:4000])
+
+
+@dp.message(Command("dialog"))
+async def cmd_dialog(message: types.Message):
+    if message.from_user.id != ADMIN_ID:
+        await message.answer("Эта команда только для администратора.")
+        return
+
+    try:
+        parts = message.text.split()
+        user_id = int(parts[1])
+    except (IndexError, ValueError):
+        await message.answer("Использование: /dialog <user_id>\nНапример: /dialog 5089723992")
+        return
+
+    history = await get_user_history(user_id)
+    if not history:
+        await message.answer("История для этого пользователя пуста.")
+        return
+
+    text = f"💬 Диалог с пользователем {user_id}:\n\n"
+    for role, content, timestamp in history:
+        prefix = "👤" if role == "user" else "🤖"
+        text += f"{prefix} {content}\n\n"
+
+    await message.answer(text[:4000])
+
 # ============================================
 # 9. ОСНОВНОЙ ОБРАБОТЧИК СООБЩЕНИЙ
 # ============================================
