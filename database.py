@@ -61,3 +61,14 @@ async def get_all_users():
         """)
         rows = await cursor.fetchall()
         return rows
+
+
+async def is_user_exists(user_id: int) -> bool:
+    """Проверяет, есть ли пользователь в базе данных."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        cursor = await db.execute(
+            "SELECT 1 FROM messages WHERE user_id = ? LIMIT 1",
+            (user_id,)
+        )
+        row = await cursor.fetchone()
+        return row is not None
