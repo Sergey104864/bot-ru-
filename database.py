@@ -1,18 +1,11 @@
 """
 database.py — модуль для работы с базой данных бота.
-Хранит историю всех диалогов с пользователями.
 """
-
 import aiosqlite
-from datetime import datetime
 
-
-# Путь к файлу базы данных (создастся автоматически)
 DB_PATH = "bot_history.db"
 
-
 async def init_db():
-    """Создаёт таблицу для истории сообщений, если её ещё нет."""
     async with aiosqlite.connect(DB_PATH) as db:
         await db.execute("""
             CREATE TABLE IF NOT EXISTS messages (
@@ -28,9 +21,7 @@ async def init_db():
         await db.commit()
     print("✅ База данных готова")
 
-
 async def save_message(user_id: int, username: str, first_name: str, role: str, content: str):
-    """Сохраняет сообщение в базу данных."""
     async with aiosqlite.connect(DB_PATH) as db:
         await db.execute(
             "INSERT INTO messages (user_id, username, first_name, role, content) VALUES (?, ?, ?, ?, ?)",
@@ -38,20 +29,16 @@ async def save_message(user_id: int, username: str, first_name: str, role: str, 
         )
         await db.commit()
 
-
 async def get_user_history(user_id: int, limit: int = 20):
-    """Возвращает последние N сообщений конкретного пользователя."""
     async with aiosqlite.connect(DB_PATH) as db:
         cursor = await db.execute(
             "SELECT role, content, timestamp FROM messages WHERE user_id = ? ORDER BY timestamp DESC LIMIT ?",
             (user_id, limit)
         )
         rows = await cursor.fetchall()
-        return rows[::-1]  # возвращаем в хронологическом порядке
-
+        return rows[::-1]
 
 async def get_all_users():
-    """Возвращает список всех пользователей, которые писали боту."""
     async with aiosqlite.connect(DB_PATH) as db:
         cursor = await db.execute("""
             SELECT DISTINCT user_id, username, first_name, MAX(timestamp) as last_seen 
@@ -61,7 +48,6 @@ async def get_all_users():
         """)
         rows = await cursor.fetchall()
         return rows
-
 
 async def is_user_exists(user_id: int) -> bool:
     """Проверяет, есть ли пользователь в базе данных."""
