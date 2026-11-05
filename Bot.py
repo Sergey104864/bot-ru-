@@ -6,12 +6,14 @@ from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import Command
 from aiohttp import web
 from database import init_db, save_message, get_user_history, get_all_users, is_user_exists
+from aiogram.client.session.aiohttp import AiohttpSession
+from aiohttp_socks import ProxyConnector
 
 # ============================================
 # 2. НАСТРОЙКА
 # ============================================
 BOT_TOKEN = os.getenv("BOT_TOKEN")
-ADMIN_ID = 5089723992  # ← ВАШ ID
+ADMIN_ID = 5089723992
 
 # ===== ДИАГНОСТИКА =====
 print("=" * 60)
@@ -23,9 +25,8 @@ for key in sorted(os.environ.keys()):
             value = value[:10] + "..." + value[-5:]
     print(f"   {key} = {value}")
 print("=" * 60)
-# =========================
 
-# --- НАСТРОЙКА OPENAI (через ProxyAPI) ---
+# --- НАСТРОЙКА OPENAI ---
 client = openai.OpenAI(
     base_url="https://api.proxyapi.ru/v1",
 )
@@ -59,14 +60,19 @@ if len(knowledge_base) > 30000:
 print(f"✅ База знаний готова ({len(knowledge_base)} символов)")
 
 # ============================================
-# 5. НАСТРОЙКА БОТА
+# 5. НАСТРОЙКА БОТА (С ПРОКСИ)
 # ============================================
 logging.basicConfig(level=logging.INFO)
-bot = Bot(token=BOT_TOKEN)
+
+proxy_url = os.getenv("HTTPS_PROXY")
+connector = ProxyConnector.from_url(proxy_url) if proxy_url else None
+session = AiohttpSession(proxy=connector)
+
+bot = Bot(token=BOT_TOKEN, session=session)
 dp = Dispatcher()
 
 # ============================================
-# 6. СИСТЕМНЫЙ ПРОМПТ (ОСТАВЛЯЕМ ВАШ)
+# 6. СИСТЕМНЫЙ ПРОМПТ
 # ============================================
 SYSTEM_PROMPT = """
 Ты — консультант сервисного центра. Специализируешься на:
@@ -132,7 +138,6 @@ SYSTEM_PROMPT = """
 На такие вопросы отвечай: "К сожалению, я помогаю только по беговым дорожкам, велотренажёрам, спин-байкам, эллиптическим и гребным тренажёрам, а также массажным креслам. По вашему вопросу лучше обратиться в общий сервисный центр по номеру +79990635140."
 """
 
-
 # ============================================
 # 7-8.5. ОБРАБОТЧИКИ КОМАНД
 # ============================================
@@ -144,7 +149,6 @@ async def start_command(message: types.Message):
         "Если нужна помощь мастера — просто напишите об этом."
     )
 
-
 @dp.message(Command("clear"))
 async def clear_history(message: types.Message):
     user_id = message.from_user.id
@@ -153,7 +157,6 @@ async def clear_history(message: types.Message):
         await message.answer("🧹 История диалога очищена!")
     else:
         await message.answer("📭 У вас нет сохранённой истории.")
-
 
 @dp.message(Command("users"))
 async def cmd_users(message: types.Message):
@@ -168,7 +171,6 @@ async def cmd_users(message: types.Message):
     for user_id, username, first_name, last_seen in users:
         text += f"• {first_name} (@{username or 'нет'})\n  ID: {user_id}\n  Последняя активность: {last_seen}\n\n"
     await message.answer(text[:4000])
-
 
 @dp.message(Command("dialog"))
 async def cmd_dialog(message: types.Message):
@@ -190,7 +192,6 @@ async def cmd_dialog(message: types.Message):
         prefix = "👤" if role == "user" else "🤖"
         text += f"{prefix} {content}\n\n"
     await message.answer(text[:4000])
-
 
 # ============================================
 # 9. ОСНОВНОЙ ОБРАБОТЧИК
@@ -262,12 +263,10 @@ async def handle_message(message: types.Message):
         await message.answer("Ошибка при генерации ответа. Попробуйте позже.")
         print(f"🔴 ОШИБКА: {e}")
 
-
 # ==========================================
-# === ЗАПУСК (ИСПРАВЛЕНО) ===
+# === ЗАПУСК ===
 # ==========================================
 async def start_web_server():
-    """Веб-сервер для Render, работает в одном цикле с ботом"""
     app = web.Application()
     app.router.add_get('/', lambda request: web.Response(text="Bot is alive!"))
     runner = web.AppRunner(app)
@@ -277,20 +276,14 @@ async def start_web_server():
     await site.start()
     print(f"✅ Веб-сервер запущен на порту {port}")
 
-
 async def main():
     await init_db()
     print("🤖 Бот запущен!")
     print("📚 База знаний готова к работе.")
-
     print("⏳ Начинаю слушать Telegram (Start polling)...")
 
-    # Запускаем веб-сервер в фоне внутри того же event loop
     asyncio.create_task(start_web_server())
-
-    # Запускаем бота
     await dp.start_polling(bot)
-
 
 if __name__ == "__main__":
     asyncio.run(main())
