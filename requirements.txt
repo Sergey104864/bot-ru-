@@ -1,6 +1,11 @@
+cat > requirements.txt << 'EOF'
 aiogram
 openai
-python-dotenv
 aiohttp
 aiosqlite
+gspread
+google-auth
+python-dotenv
 socksio
+httpx[socks]
+EOF
